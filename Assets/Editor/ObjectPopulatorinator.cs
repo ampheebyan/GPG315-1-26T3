@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using System;
+using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -16,7 +17,20 @@ namespace Editor
         private Slider _densitySlider;
         private Slider _radiusSlider;
         private Label _statusLabel;
+
+        private void OnEnable()
+        {
+            SceneView.duringSceneGui += SceneViewOnduringSceneGui;
+            
+        }
+
+
+        private void OnDisable()
+        {
+            SceneView.duringSceneGui -= SceneViewOnduringSceneGui;
+        }
         
+
         [MenuItem("Tools/Object Populatorinator")]
         private static void ShowWindow()
         {
@@ -71,12 +85,30 @@ namespace Editor
             rootVisualElement.Add(_statusLabel);
         }
 
-        private void Callback(ChangeEvent<float> evt)
+        private void SceneViewOnduringSceneGui(SceneView obj)
+        {
+            Handles.color = Color.mediumPurple;
+            EditorGUI.BeginChangeCheck();
+            Vector3 pos = Handles.PositionHandle(_originField.value, Quaternion.identity);
+            if (EditorGUI.EndChangeCheck())
+            {
+                _originField.value = pos;
+                Repaint();
+            }
+        }
+
+        public Vector2 CalculateAreaObjects()
         {
             float area = Mathf.PI * (_radiusSlider.value * _radiusSlider.value);
             float objects = Mathf.RoundToInt(area * _densitySlider.value);
-            Debug.Log($"{_densitySlider.value}, {_radiusSlider.value}: {objects}");
-            _statusLabel.text = objects >= 500 ? $"WARNING: {objects} objects will be created!" : "";
+            return new Vector2(objects, area);
+        }
+        
+        private void Callback(ChangeEvent<float> evt)
+        {
+            Vector2 areaObjects = CalculateAreaObjects();
+            Debug.Log($"{_densitySlider.value}, {_radiusSlider.value}: {areaObjects.x}");
+            _statusLabel.text = areaObjects.x >= 500 ? $"WARNING: {areaObjects.x} objects will be created!" : "";
         }
 
         private void ClickEvent()
@@ -91,14 +123,14 @@ namespace Editor
             _statusLabel.text = "";
             Debug.Log($"{_objectField.value.name}, origin: {_originField.value}, radius: {_radiusSlider.value}, density: {_densitySlider.value}");
             
-            float area = Mathf.PI * (_radiusSlider.value * _radiusSlider.value);
-            float objects = Mathf.RoundToInt(area * _densitySlider.value);
-            Debug.Log($"creating {objects} clones of {_objectField.value.name}, prepare for the worst!");
-            _statusLabel.text = $"Creating {objects} clones of {_objectField.value.name}, prepare for the worst!";
+            Vector2 areaObjects = CalculateAreaObjects();
+
+            Debug.Log($"creating {areaObjects.x} clones of {_objectField.value.name}, prepare for the worst!");
+            _statusLabel.text = $"Creating {areaObjects.x} clones of {_objectField.value.name}, prepare for the worst!";
             // choosing the lazy way out with undo handling (making a container object and then just registering that for the undo. like i would do this anyway for neatness but like, this is just an extra bonus!)
-            GameObject populationContainer = new GameObject($"{_objectField.value.name} ({objects}, radius: {_radiusSlider.value}, density: {_densitySlider.value})");
-            Undo.RegisterCreatedObjectUndo(populationContainer, $"Clone {_objectField.value.name} {objects} times.");
-            for (int i = 0; i < objects; i++)
+            GameObject populationContainer = new GameObject($"{_objectField.value.name} ({areaObjects.x}, radius: {_radiusSlider.value}, density: {_densitySlider.value})");
+            Undo.RegisterCreatedObjectUndo(populationContainer, $"Clone {_objectField.value.name} {areaObjects.x} times.");
+            for (int i = 0; i < areaObjects.x; i++)
             {
                 Vector2 rPos = Random.insideUnitCircle * _radiusSlider.value;
                 GameObject instancedObject = Instantiate(_objectField.value, _originField.value + new Vector3(rPos.x, 0f, rPos.y), Quaternion.identity) as GameObject;
@@ -108,7 +140,7 @@ namespace Editor
                     instancedObject.name = $"{_objectField.value.name} {i}";
                 }
             }
-            _statusLabel.text = $"Created {objects} clones of {_objectField.value.name}.";
+            _statusLabel.text = $"Created {areaObjects.x} clones of {_objectField.value.name}.";
         }
     }
 }
