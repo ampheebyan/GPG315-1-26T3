@@ -11,7 +11,7 @@ namespace Editor
     {
         public Vector3 Origin;
         public GameObject Prefab;
-        public float Density = 0.1f;
+        public float Density = 0.001f;
         public float Radius = 30f;
     }
     public class ObjectPopulatorinator : EditorWindow
@@ -24,12 +24,14 @@ namespace Editor
         private Slider _radiusSlider;
         private Label _statusLabel;
 
+        private Texture2D _logotex;
         private void OnEnable()
         {
             Debug.Log($"ObjectPopulatorinator: OnEnable");
             _settings = CreateInstance<ObjectPopulatorinatorSettings>();
             SceneView.duringSceneGui += SceneViewOnduringSceneGui;
             Undo.undoRedoEvent += UndoRedoEvent;
+            _logotex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Editor/logo.gif");
         }
 
         private void UndoRedoEvent(in UndoRedoInfo undo)
@@ -70,9 +72,20 @@ namespace Editor
             rootVisualElement.style.paddingLeft = _padding;
             rootVisualElement.style.paddingRight = _padding;
             // have never really made my own tools that use the editor in this way before, so this is going to be bad and awful, but that's what learning is for, right?
-            Label titleLabel = new Label("<size=150%>The Object Populatorinator</size>");
-            Label label = new Label("Created by Phoebe B. (1033478) for GPG315.1");
-            rootVisualElement.Add(titleLabel);
+
+            Image image = new Image
+            {
+                image = _logotex
+            };
+            rootVisualElement.Add(image);
+            Label label = new Label("Created by Phoebe B. (1033478) for GPG315.1")
+            {
+                style =
+                {
+                    position = Position.Absolute,
+                    bottom = 5
+                }
+            };
             rootVisualElement.Add(label);
             
             _originField = new Vector3Field("Origin Point")
@@ -102,7 +115,7 @@ namespace Editor
             });
             rootVisualElement.Add(_objectField);
             
-            _radiusSlider = new Slider("Radius", 1f, 150f)
+            _radiusSlider = new Slider("Radius", .5f, 150f)
             {
                 showInputField = true,
                 value = _settings.Radius
@@ -116,7 +129,7 @@ namespace Editor
             });
             rootVisualElement.Add(_radiusSlider);
             
-            _densitySlider = new Slider("Density", .1f, 1f)
+            _densitySlider = new Slider("Density", .001f, 1f)
             {
                 showInputField = true,
                 value = _settings.Density
